@@ -1,0 +1,23 @@
+#       OS        #
+###################
+.DS_Store
+.idea
+Thumbs.db
+tmp
+temp
+
+#     Node.js     #
+###################
+node_modules
+
+#    Coverage     #
+###################
+coverage
+
+#      Build      #
+###################
+dist
+
+#       ENV       #
+###################
+.env
