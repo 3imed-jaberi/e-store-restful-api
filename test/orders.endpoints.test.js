@@ -42,7 +42,6 @@ describe('Orders Endpoint (/api/v1/orders)', () => {
       .send(userData)
     persistedUserResponse = response.body.data
     if (server?.listening) server.close()
-    await Mongoose.connection.close()
   })
 
   afterAll(async () => {
@@ -54,13 +53,11 @@ describe('Orders Endpoint (/api/v1/orders)', () => {
   })
 
   beforeEach(async () => {
-    await dbConnect()
     server = app.listen()
   })
 
   afterEach(async () => {
     if (server?.listening) server.close()
-    await Mongoose.connection.close()
   })
 
   it('GET / [success]', async () => {

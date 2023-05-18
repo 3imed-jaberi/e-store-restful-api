@@ -1,3 +1,6 @@
+import path from 'node:path'
+import fs from 'node:fs/promises'
+
 import asyncHandler from 'express-async-handler'
 
 import { ResponseException } from '#app/exceptions/index.js'
@@ -22,7 +25,7 @@ export const getAllItems = asyncHandler(async (request, response) => {
  * @access   Private
  */
 export const getItem = asyncHandler(async (request, response, next) => {
-  const item = await (await ItemModel.findById(request.params.id)).populate('owner')
+  const item = await ItemModel.findById(request.params.id).populate('owner')
   if (!item) {
     return next(
       new ResponseException(
@@ -43,12 +46,37 @@ export const getItem = asyncHandler(async (request, response, next) => {
  * @route    POST /api/v1/items/:id
  * @access   Private
  */
-export const createItem = asyncHandler(async (request, response) => {
-  const item = await (await ItemModel.create(request.body)).populate('owner')
+export const createItem = asyncHandler(async (request, response, next) => {
+  const createItemResponse = async (payload) => {
+    const createdItem = await ItemModel.create(payload).then(
+      (createdItem) => createdItem.populate('owner')
+    )
 
-  response.status(201).json({
-    status: 'success',
-    data: item
+    return response.status(201).json({
+      status: 'success',
+      data: createdItem
+    })
+  }
+  const file = request.files?.photo
+
+  if (!file) {
+    await createItemResponse(request.body)
+    return
+  }
+
+  if (!request.body.name) { return next(new ResponseException('Please add a name', 400)) }
+
+  if (!file.mimetype.startsWith('image')) { return next(new ResponseException('Please upload an image file', 400)) }
+
+  file.name = `photo_${request.body.name}${path.parse(file.name).ext}`
+  const targetFileUploadedPath = `uploads/${file.name}`
+  file.mv(targetFileUploadedPath, async (error) => {
+    if (error) {
+      console.error(error)
+      return next(new ResponseException('Problem with file upload', 500))
+    }
+
+    await createItemResponse({ ...request.body, photo: targetFileUploadedPath })
   })
 })
 
@@ -58,9 +86,9 @@ export const createItem = asyncHandler(async (request, response) => {
  * @access   Private
  */
 export const updateItem = asyncHandler(async (request, response, next) => {
-  let item = await ItemModel.findById(request.params.id)
+  const foundedItem = await ItemModel.findById(request.params.id)
 
-  if (!item) {
+  if (!foundedItem) {
     return next(
       new ResponseException(
         `Item not found with id of ${request.params.id}`,
@@ -69,16 +97,37 @@ export const updateItem = asyncHandler(async (request, response, next) => {
     )
   }
 
-  item = await (
-    await ItemModel.findByIdAndUpdate(request.params.id, request.body, {
-      new: true,
-      runValidators: true
-    })
-  ).populate('owner')
+  const updatedItemResponse = async (id, payload) => {
+    const updatedItem = await ItemModel
+      .findByIdAndUpdate(id, payload, {
+        new: true,
+        runValidators: true
+      }).then(updatedItem => updatedItem.populate('owner'))
 
-  response.status(203).json({
-    status: 'success',
-    data: item
+    return response.status(203).json({
+      status: 'success',
+      data: updatedItem
+    })
+  }
+
+  const file = request.files?.photo
+  if (!file) {
+    await updatedItemResponse(request.params.id, request.body)
+    return
+  }
+
+  if (!file.mimetype.startsWith('image')) { return next(new ResponseException('Please upload an image file', 400)) }
+
+  await fs.rm(foundedItem.photo)
+  file.name = `photo_${foundedItem.name}${path.parse(file.name).ext}`
+  const targetFileUploadedPath = `uploads/${file.name}`
+  file.mv(targetFileUploadedPath, async (error) => {
+    if (error) {
+      console.error(error)
+      return next(new ResponseException('Problem with file upload', 500))
+    }
+
+    await updatedItemResponse(request.params.id, { ...request.body, photo: targetFileUploadedPath })
   })
 })
 
@@ -88,9 +137,9 @@ export const updateItem = asyncHandler(async (request, response, next) => {
  * @access   Private
  */
 export const deleteItem = asyncHandler(async (request, response, next) => {
-  const item = await ItemModel.findById(request.params.id)
+  const foundedItem = await ItemModel.findById(request.params.id)
 
-  if (!item) {
+  if (!foundedItem) {
     return next(
       new ResponseException(
         `Item not found with id of ${request.params.id}`,

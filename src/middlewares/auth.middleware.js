@@ -14,7 +14,6 @@ export const protect = asyncHandler(async (request, _, next) => {
 
   try {
     const decoded = jwtUtils.verifyToken(token)
-    console.log(decoded)
     request.user = await UserModel.findById(decoded.id)
     next()
   } catch (error) {

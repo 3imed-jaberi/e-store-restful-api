@@ -53,7 +53,11 @@ const syncItemsAndGetTotalPrices = async (purchases) => {
     )
     const nextQuantity = item.quantity - targetPurchase.quantity
     total += item.price * targetPurchase.quantity
-    await ItemModel.findByIdAndUpdate(targetPurchase.item, { quantity: nextQuantity }, { runValidators: true })
+    await ItemModel.findByIdAndUpdate(
+      targetPurchase.item,
+      { quantity: nextQuantity },
+      { runValidators: true }
+    )
   })
 
   return { total }
@@ -67,14 +71,16 @@ const syncItemsAndGetTotalPrices = async (purchases) => {
 export const createOrder = asyncHandler(async (request, response) => {
   const { client, purchases, ...requestBody } = request.body
   const { total } = await syncItemsAndGetTotalPrices(purchases)
-
-  const order = await (
-    await OrderModel.create({ ...requestBody, total, client, purchases })
-  ).populate('client purchases.item')
+  const createdOrder = await OrderModel.create({
+    ...requestBody,
+    total,
+    client,
+    purchases
+  }).then((createdOrder) => createdOrder.populate('client purchases.item'))
 
   response.status(201).json({
     status: 'success',
-    data: order
+    data: createdOrder
   })
 })
 
@@ -84,9 +90,9 @@ export const createOrder = asyncHandler(async (request, response) => {
  * @access   Private
  */
 export const updateOrder = asyncHandler(async (request, response, next) => {
-  let order = await OrderModel.findById(request.params.id)
+  const foundedOrder = await OrderModel.findById(request.params.id)
 
-  if (!order) {
+  if (!foundedOrder) {
     return next(
       new ResponseException(
         `Order not found with id of ${request.params.id}`,
@@ -97,14 +103,18 @@ export const updateOrder = asyncHandler(async (request, response, next) => {
 
   const { client, purchases, ...requestBody } = request.body
   const { total } = await syncItemsAndGetTotalPrices(purchases)
-  order = await OrderModel.findByIdAndUpdate(request.params.id, { ...requestBody, total, client, purchases }, {
-    new: true,
-    runValidators: true
-  })
+  const updatedOrder = await OrderModel.findByIdAndUpdate(
+    request.params.id,
+    { ...requestBody, total, client, purchases },
+    {
+      new: true,
+      runValidators: true
+    }
+  ).then((updatedOrder) => updatedOrder.populate('client purchases.item'))
 
   response.status(203).json({
     status: 'success',
-    data: order
+    data: updatedOrder
   })
 })
 
@@ -148,9 +158,9 @@ export const updateOrderStatus = asyncHandler(
  * @access   Private
  */
 export const deleteOrder = asyncHandler(async (request, response, next) => {
-  const order = await OrderModel.findById(request.params.id)
+  const foundedOrder = await OrderModel.findById(request.params.id)
 
-  if (!order) {
+  if (!foundedOrder) {
     return next(
       new ResponseException(
         `Order not found with id of ${request.params.id}`,

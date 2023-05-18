@@ -4,6 +4,7 @@ const ItemSchema = new Mongoose.Schema(
   {
     name: {
       type: String,
+      unique: [true, 'Please add an unique name'],
       required: [true, 'Please add a name']
     },
     description: {
@@ -26,7 +27,10 @@ const ItemSchema = new Mongoose.Schema(
       min: [0, 'Please add a valid quantity, value is {VALUE}, min 0'],
       max: [10000, 'Please add a valid quantity, value is {VALUE}, max 10000']
     },
-    // missing image ...
+    photo: {
+      type: String,
+      default: 'uploads/no-image.jpeg'
+    },
     owner: {
       type: Mongoose.Schema.Types.ObjectId,
       ref: 'User',

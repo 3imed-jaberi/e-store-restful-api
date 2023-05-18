@@ -1,6 +1,9 @@
+import path from 'node:path'
+
 import express from 'express'
 import morgan from 'morgan'
 import mongoSanitize from 'express-mongo-sanitize'
+import fileUpload from 'express-fileupload'
 import helmet from 'helmet'
 import xss from 'xss-clean'
 import rateLimit from 'express-rate-limit'
@@ -16,6 +19,8 @@ const app = express()
 app
   // body parser
   .use(express.json())
+  // file upload
+  .use(fileUpload())
   // logger
   .use(morgan('dev'))
   // sanitize data
@@ -35,6 +40,8 @@ app
   .use(hpp())
   // enable CORS
   .use(cors())
+  // serve static uploaded files
+  .use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')))
   // mount routers
   .use('/api/v1/auth', Routers.authRouter)
   .use('/api/v1/items', Routers.itemsRouter)

@@ -132,6 +132,7 @@ describe('Items Endpoint (/api/v1/items)', () => {
       expect.objectContaining({
         name: expect.any(String),
         description: expect.any(String),
+        photo: expect.any(String),
         price: expect.any(Number),
         quantity: expect.any(Number),
         owner: expect.any(Object),
@@ -158,6 +159,7 @@ describe('Items Endpoint (/api/v1/items)', () => {
       expect.objectContaining({
         name: expect.any(String),
         description: expect.any(String),
+        photo: expect.any(String),
         price: expect.any(Number),
         quantity: expect.any(Number),
         owner: expect.any(Object),
